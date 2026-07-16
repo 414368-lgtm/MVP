@@ -3,6 +3,7 @@ const cors = require("cors");
 const dotenv = require("dotenv");
 const authRouter = require("./auth");
 dotenv.config();
+const OLLAMA_API_KEY = process.env.OLLAMA_API_KEY;
 
 const app = express();
 
@@ -253,23 +254,24 @@ console.log(appContext);
     });
 
 const ollamaResponse = await fetch(
-  OLLAMA_URL + "/api/chat",
+  "https://ollama.com/api/chat",
   {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: OLLAMA_MODEL,
-          messages,
-          stream: false,
-          options: {
-            temperature: 0.7,
-            num_ctx: 4096,
-          },
-        }),
-      }
-    );
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+  "Authorization": `Bearer ${OLLAMA_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: OLLAMA_MODEL,
+      messages,
+      stream: false,
+      options: {
+        temperature: 0.7,
+        num_ctx: 4096,
+      },
+    }),
+  }
+);
 
     if (!ollamaResponse.ok) {
       const errorText = await ollamaResponse.text();
