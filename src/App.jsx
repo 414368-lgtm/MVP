@@ -39,6 +39,7 @@ const homeAgentPhrases = [
   "Мы не меняем курс. Сегодня усиливаем то, что уже построено.",
   "Вернись к цели. Определи следующее действие и выполни его."
 ];
+const API_URL = "https://mvp-production-10ea.up.railway.app";
 export default function App() {const [authToken, setAuthToken] = useState(() => {
   return localStorage.getItem("mvp-auth-token") ?? "";
 });
@@ -186,7 +187,7 @@ async function submitAuth(event) {
         ? "/api/auth/register"
         : "/api/auth/login";
 
-    const response = await fetch(endpoint, {
+    const response = await fetch(API_URL + endpoint, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

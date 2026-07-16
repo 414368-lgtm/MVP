@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const authRouter = require("./auth");
+console.log("AUTH ROUTER LOADED");
 dotenv.config();
 const OLLAMA_API_KEY = process.env.OLLAMA_API_KEY;
 
@@ -23,6 +24,7 @@ app.use(
 
 app.use(express.json({ limit: "2mb" }));
 app.use("/api/auth", authRouter);
+console.log("AUTH ROUTES MOUNTED");
 const MVP_SYSTEM_PROMPT = `
 Ты — MVP, персональный AI-агент пользователя.
 
