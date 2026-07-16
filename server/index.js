@@ -1,7 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
-
+const authRouter = require("./auth");
 dotenv.config();
 
 const app = express();
@@ -21,7 +21,7 @@ app.use(
 );
 
 app.use(express.json({ limit: "2mb" }));
-
+app.use("/api/auth", authRouter);
 const MVP_SYSTEM_PROMPT = `
 Ты — MVP, персональный AI-агент пользователя.
 
@@ -58,7 +58,28 @@ const MVP_SYSTEM_PROMPT = `
 Без искусственной мотивации.
 Без фраз вроде "Ты молодец".
 Без чрезмерной вежливости.
+ВАЖНО:
 
+Перед выводом обязательно проанализируй переданные USER GOALS и RECENT JOURNAL CONTEXT.
+
+Не придумывай препятствия, которых нет в данных.
+
+Каждый вывод должен опираться на конкретный факт из целей, мыслей, питания или движения пользователя.
+
+Если пользователь долго работает над одной задачей, не называй это "отвлечением" без фактов.
+
+Сначала назови конкретный факт из контекста.
+Потом объясни, что этот факт означает.
+Потом предложи одно конкретное следующее действие.
+
+Запрещены общие советы вроде:
+"убери отвлекающие приложения";
+"составь план";
+"поставь конкретные цели";
+"сосредоточься";
+если такие выводы прямо не подтверждаются контекстом.
+
+Не задавай вопрос в конце ответа, если следующий шаг уже очевиден.
 Каждый ответ должен либо:
 — дать решение;
 — выявить препятствие;
@@ -192,7 +213,11 @@ app.post("/api/agent", async (req, res) => {
     }
 
     const appContext = buildContext(goals, journalEntries);
-
+    console.log("=== MVP APP CONTEXT START ===");
+console.log(appContext);
+console.log("=== MVP APP CONTEXT END ===");
+console.log("MVP APP CONTEXT:");
+console.log(appContext);
     const messages = [
       {
         role: "system",

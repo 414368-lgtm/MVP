@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import "./App.css";
 
 const initialGoals = [
@@ -25,21 +25,94 @@ const tabs = [
   "АГЕНТ",
   "ИСТОРИЯ",
 ];
+const homeAgentPhrases = [
+  "Сегодня мы доделаем то, что задумали. Не распыляйся.",
+  "Ты уже начал движение. Сегодня задача — не потерять темп.",
+  "Не ищи новую идею. Доведи текущую до рабочего результата.",
+  "Сегодня нужен один законченный результат. Всё остальное — шум.",
+  "Продолжай с того места, где остановился. Система помнит направление.",
+  "Не начинай заново. Улучши то, что уже работает.",
+  "Сегодня мы двигаем MVP дальше. Один конкретный этап за раз.",
+  "Твоя задача на сегодня — сделать следующий шаг, а не весь путь сразу.",
+  "Вчера ты создал основу. Сегодня превращаем её в рабочий продукт.",
+  "Не усложняй. Заверши главное действие сегодняшнего дня.",
+  "Мы не меняем курс. Сегодня усиливаем то, что уже построено.",
+  "Вернись к цели. Определи следующее действие и выполни его."
+];
+export default function App() {const [authToken, setAuthToken] = useState(() => {
+  return localStorage.getItem("mvp-auth-token") ?? "";
+});
 
-export default function App() {
+const [currentUser, setCurrentUser] = useState(() => {
+  try {
+    const savedUser = localStorage.getItem("mvp-current-user");
+    return savedUser ? JSON.parse(savedUser) : null;
+  } catch {
+    return null;
+  }
+});
+
+const [authMode, setAuthMode] = useState("register");
+const [authLoading, setAuthLoading] = useState(false);
+const [authError, setAuthError] = useState("");
+
+const [authForm, setAuthForm] = useState({
+  name: "",
+  email: "",
+  password: "",
+  personalDataConsent: false,
+  privacyConsent: false,
+  aiConsent: false,
+});
+const homeAgentPhrase = useMemo(() => {
+  return homeAgentPhrases[
+    Math.floor(Math.random() * homeAgentPhrases.length)
+  ];
+}, []);
   const [agentThinking, setAgentThinking] = useState(false);
   const [activeTab, setActiveTab] = useState("СЕГОДНЯ");
   const [completed, setCompleted] = useState(false);
-  const [goals, setGoals] = useState(initialGoals);
+const [goals, setGoals] = useState(() => {
+  try {
+    const saved = localStorage.getItem("mvp-goals");
+    return saved ? JSON.parse(saved) : initialGoals;
+  } catch {
+    return initialGoals;
+  }
+});
 
-  const [thoughts, setThoughts] = useState([]);
-  const [thoughtInput, setThoughtInput] = useState("");
+const [thoughts, setThoughts] = useState(() => {
+  try {
+    const saved = localStorage.getItem("mvp-thoughts");
+    return saved ? JSON.parse(saved) : [];
+  } catch {
+    return [];
+  }
+});
 
-  const [foodEntries, setFoodEntries] = useState([]);
-  const [foodInput, setFoodInput] = useState("");
+const [thoughtInput, setThoughtInput] = useState("");
 
-  const [movements, setMovements] = useState([]);
-  const [movementInput, setMovementInput] = useState("");
+const [foodEntries, setFoodEntries] = useState(() => {
+  try {
+    const saved = localStorage.getItem("mvp-food");
+    return saved ? JSON.parse(saved) : [];
+  } catch {
+    return [];
+  }
+});
+
+const [foodInput, setFoodInput] = useState("");
+
+const [movements, setMovements] = useState(() => {
+  try {
+    const saved = localStorage.getItem("mvp-movements");
+    return saved ? JSON.parse(saved) : [];
+  } catch {
+    return [];
+  }
+});
+
+const [movementInput, setMovementInput] = useState("");
 
   const [agentMessages, setAgentMessages] = useState([
     {
@@ -73,8 +146,74 @@ const [chatHistory, setChatHistory] = useState(() => {
 
 const [activeChatId, setActiveChatId] = useState(() => Date.now());
 const [showChatHistory, setShowChatHistory] = useState(false);
-  const [agentInput, setAgentInput] = useState("");
+const [showProfile, setShowProfile] = useState(false);
+const [showGoalModal, setShowGoalModal] = useState(false);
 
+const [goalForm, setGoalForm] = useState({
+  title: "",
+  deadline: "",
+  pace: "normal",
+});
+  const [agentInput, setAgentInput] = useState("");
+useEffect(() => {
+  localStorage.setItem("mvp-goals", JSON.stringify(goals));
+}, [goals]);
+
+useEffect(() => {
+  localStorage.setItem("mvp-thoughts", JSON.stringify(thoughts));
+}, [thoughts]);
+
+useEffect(() => {
+  localStorage.setItem("mvp-food", JSON.stringify(foodEntries));
+}, [foodEntries]);
+
+useEffect(() => {
+  localStorage.setItem("mvp-movements", JSON.stringify(movements));
+}, [movements]);
+async function submitAuth(event) {
+  event.preventDefault();
+
+  if (authLoading) {
+    return;
+  }
+
+  setAuthLoading(true);
+  setAuthError("");
+
+  try {
+    const endpoint =
+      authMode === "register"
+        ? "/api/auth/register"
+        : "/api/auth/login";
+
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(authForm),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error ?? "Ошибка авторизации");
+    }
+
+    localStorage.setItem("mvp-auth-token", data.token);
+    localStorage.setItem(
+      "mvp-current-user",
+      JSON.stringify(data.user)
+    );
+
+    setAuthToken(data.token);
+    setCurrentUser(data.user);
+  } catch (error) {
+    setAuthError(error.message ?? "Ошибка авторизации");
+  } finally {
+    setAuthLoading(false);
+  }
+}
   const averageProgress = useMemo(() => {
     if (goals.length === 0) {
       return 0;
@@ -86,7 +225,41 @@ const [showChatHistory, setShowChatHistory] = useState(false);
 
     return Math.round(total / goals.length);
   }, [goals]);
+function addGoal() {
+  const title = goalForm.title.trim();
+  const deadline = goalForm.deadline.trim();
 
+if (!title) {
+  return;
+}
+
+const finalDeadline = deadline || "Без срока";
+
+  setGoals((current) => [
+    ...current,
+    {
+      id: Date.now(),
+      title,
+      progress: 0,
+    deadline: finalDeadline,
+      pace: goalForm.pace,
+      createdAt: Date.now(),
+    },
+  ]);
+
+  setGoalForm({
+    title: "",
+    deadline: "",
+    pace: "normal",
+  });
+
+  setShowGoalModal(false);
+}
+function deleteGoal(goalId) {
+  setGoals((current) =>
+    current.filter((goal) => goal.id !== goalId)
+  );
+}
   function addThought() {
     const text = thoughtInput.trim();
 
@@ -172,19 +345,28 @@ async function sendAgentMessage() {
   setAgentThinking(true);
 
   try {
-    const response = await fetch("/api/agent", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        message: text,
-        history: nextMessages,
-        goals,
-        journalEntries: [],
-      }),
-    });
-
+  const response = await fetch("/api/agent", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    message: text,
+    history: nextMessages,
+    goals: goals,
+journalEntries: [
+  ...thoughts.map((item) => ({
+    text: "[МЫСЛЬ] " + String(item.text ?? ""),
+  })),
+  ...foodEntries.map((item) => ({
+    text: "[ПИТАНИЕ] " + String(item.text ?? ""),
+  })),
+  ...movements.map((item) => ({
+    text: "[ДВИЖЕНИЕ] " + String(item.text ?? ""),
+  })),
+],
+  }),
+});
     if (!response.ok) {
       throw new Error("Agent request failed");
     }
@@ -294,7 +476,12 @@ function deleteSavedChat(chatId) {
         if (goal.id !== goalId) {
           return goal;
         }
-
+<button
+  type="button"
+onClick={() => setShowGoalModal(true)}
+>
+  + ДОБАВИТЬ ЦЕЛЬ
+</button>
         return {
           ...goal,
           progress: Math.min(goal.progress + 5, 100),
@@ -304,6 +491,157 @@ function deleteSavedChat(chatId) {
   }
 
   function renderToday() {
+    if (!authToken || !currentUser) {
+  return (
+    <div className="auth-screen">
+      <div className="auth-glow" />
+
+      <form className="auth-card" onSubmit={submitAuth}>
+        <div className="auth-logo">M</div>
+
+        <div className="auth-brand">MVP</div>
+
+        <h1>
+          {authMode === "register"
+            ? "СОЗДАТЬ АККАУНТ"
+            : "ВОЙТИ В СИСТЕМУ"}
+        </h1>
+
+        <p className="auth-subtitle">
+          ПЕРСОНАЛЬНАЯ СИСТЕМА ДВИЖЕНИЯ
+        </p>
+
+        {authMode === "register" && (
+          <input
+            type="text"
+            placeholder="ТВОЕ ИМЯ"
+            value={authForm.name}
+            onChange={(event) => {
+              setAuthForm((current) => ({
+                ...current,
+                name: event.target.value,
+              }));
+            }}
+          />
+        )}
+
+        <input
+          type="email"
+          placeholder="EMAIL"
+          value={authForm.email}
+          onChange={(event) => {
+            setAuthForm((current) => ({
+              ...current,
+              email: event.target.value,
+            }));
+          }}
+        />
+
+        <input
+          type="password"
+          placeholder="ПАРОЛЬ"
+          value={authForm.password}
+          onChange={(event) => {
+            setAuthForm((current) => ({
+              ...current,
+              password: event.target.value,
+            }));
+          }}
+        />
+
+        {authMode === "register" && (
+          <div className="auth-consents">
+            <label>
+              <input
+                type="checkbox"
+                checked={authForm.personalDataConsent}
+                onChange={(event) => {
+                  setAuthForm((current) => ({
+                    ...current,
+                    personalDataConsent: event.target.checked,
+                  }));
+                }}
+              />
+
+              <span>
+                Я СОГЛАСЕН НА ОБРАБОТКУ ПЕРСОНАЛЬНЫХ ДАННЫХ
+              </span>
+            </label>
+
+            <label>
+              <input
+                type="checkbox"
+                checked={authForm.privacyConsent}
+                onChange={(event) => {
+                  setAuthForm((current) => ({
+                    ...current,
+                    privacyConsent: event.target.checked,
+                  }));
+                }}
+              />
+
+              <span>
+                Я ПРИНИМАЮ ПОЛИТИКУ КОНФИДЕНЦИАЛЬНОСТИ
+              </span>
+            </label>
+
+            <label>
+              <input
+                type="checkbox"
+                checked={authForm.aiConsent}
+                onChange={(event) => {
+                  setAuthForm((current) => ({
+                    ...current,
+                    aiConsent: event.target.checked,
+                  }));
+                }}
+              />
+
+              <span>
+                Я СОГЛАСЕН НА ИСПОЛЬЗОВАНИЕ AI ДЛЯ АНАЛИЗА МОИХ ЗАПИСЕЙ
+              </span>
+            </label>
+          </div>
+        )}
+
+        {authError && (
+          <div className="auth-error">
+            {authError}
+          </div>
+        )}
+
+        <button
+          className="auth-submit"
+          type="submit"
+          disabled={authLoading}
+        >
+          {authLoading
+            ? "ПОДКЛЮЧЕНИЕ..."
+            : authMode === "register"
+              ? "СОЗДАТЬ АККАУНТ"
+              : "ВОЙТИ"}
+        </button>
+
+        <button
+          className="auth-switch"
+          type="button"
+          onClick={() => {
+            setAuthError("");
+            setAuthMode((current) =>
+              current === "register"
+                ? "login"
+                : "register"
+            );
+          }}
+        >
+          {authMode === "register"
+            ? "УЖЕ ЕСТЬ АККАУНТ — ВОЙТИ"
+            : "НЕТ АККАУНТА — РЕГИСТРАЦИЯ"}
+        </button>
+      </form>
+    </div>
+  );
+}
     return (
       <>
         <section className="hero">
@@ -392,7 +730,16 @@ function deleteSavedChat(chatId) {
                 <h3>Активные цели</h3>
               </div>
             </div>
-
+<div className="goal-create-zone">
+  <button
+    type="button"
+    className="add-goal-button"
+    onClick={() => setShowGoalModal(true)}
+  >
+    <span className="add-goal-plus">+</span>
+    ДОБАВИТЬ ЦЕЛЬ
+  </button>
+</div>
             <div className="goal-list">
               {goals.map((goal) => (
                 <article
@@ -444,8 +791,7 @@ function deleteSavedChat(chatId) {
 
             <div className="agent-message">
               <p>
-                Ты решил создавать продукты.
-                Сегодня у тебя одна задача:
+              {homeAgentPhrase}
               </p>
 
               <strong>
@@ -517,15 +863,23 @@ function deleteSavedChat(chatId) {
                   {goal.deadline}
                 </span>
 
-                <button
-                  className="action-button"
-                  type="button"
-                  onClick={() =>
-                    increaseGoalProgress(goal.id)
-                  }
-                >
-                  + ЗАФИКСИРОВАТЬ ДВИЖЕНИЕ
-                </button>
+               <div className="goal-actions">
+  <button
+    className="action-button"
+    type="button"
+    onClick={() => increaseGoalProgress(goal.id)}
+  >
+    + ЗАФИКСИРОВАТЬ ДВИЖЕНИЕ
+  </button>
+
+  <button
+    className="delete-goal-button"
+    type="button"
+    onClick={() => deleteGoal(goal.id)}
+  >
+    УДАЛИТЬ ЦЕЛЬ
+  </button>
+</div>
               </div>
             </article>
           ))}
@@ -865,18 +1219,129 @@ if (activeTab === "ИСТОРИЯ") return renderHistory();
           </div>
         </div>
 
-        <button
-          className="profile-button"
-          type="button"
-        >
-          FF
-        </button>
+    <div className="profile-wrap">
+  <button
+    className="profile-button"
+    type="button"
+    onClick={() => {
+      setShowProfile((current) => !current);
+    }}
+  >
+    {currentUser?.name
+      ? currentUser.name.slice(0, 2).toUpperCase()
+      : "M"}
+  </button>
+
+  {showProfile && (
+    <div className="profile-menu">
+      <span className="profile-menu-label">
+        MVP / PROFILE
+      </span>
+
+      <strong>{currentUser?.name}</strong>
+
+      <span className="profile-email">
+        {currentUser?.email}
+      </span>
+
+      <button
+        type="button"
+        className="logout-button"
+        onClick={() => {
+          localStorage.removeItem("mvp-auth-token");
+          localStorage.removeItem("mvp-current-user");
+
+          setAuthToken("");
+          setCurrentUser(null);
+          setShowProfile(false);
+        }}
+      >
+        ВЫЙТИ ИЗ АККАУНТА
+      </button>
+    </div>
+  )}
+</div>
       </header>
 
       <main className="dashboard">
         {renderContent()}
       </main>
+{showGoalModal && (
+  <div
+    className="goal-modal-overlay"
+    onClick={() => setShowGoalModal(false)}
+  >
+    <div
+      className="goal-modal"
+      onClick={(event) => event.stopPropagation()}
+    >
+      <div className="goal-modal-logo">M</div>
 
+      <span className="goal-modal-kicker">
+        MVP / NEW TARGET
+      </span>
+
+      <h2>СОЗДАТЬ ЦЕЛЬ</h2>
+
+      <input
+        type="text"
+        placeholder="ЧЕГО ТЫ ХОЧЕШЬ ДОСТИЧЬ?"
+        value={goalForm.title}
+        onChange={(event) => {
+          setGoalForm((current) => ({
+            ...current,
+            title: event.target.value,
+          }));
+        }}
+      />
+
+      <input
+        type="date"
+        value={goalForm.deadline}
+        onChange={(event) => {
+          setGoalForm((current) => ({
+            ...current,
+            deadline: event.target.value,
+          }));
+        }}
+      />
+
+      <label className="goal-pace-label">
+        ТЕМП ДВИЖЕНИЯ
+      </label>
+
+      <select
+        value={goalForm.pace}
+        onChange={(event) => {
+          setGoalForm((current) => ({
+            ...current,
+            pace: event.target.value,
+          }));
+        }}
+      >
+        <option value="soft">СПОКОЙНЫЙ</option>
+        <option value="normal">НОРМАЛЬНЫЙ</option>
+        <option value="hard">ЖЁСТКИЙ</option>
+      </select>
+
+      <button
+        className="goal-modal-submit"
+        type="button"
+        onClick={addGoal}
+      >
+        ЗАПУСТИТЬ ЦЕЛЬ
+      </button>
+
+      <button
+        className="goal-modal-cancel"
+        type="button"
+        onClick={() => setShowGoalModal(false)}
+      >
+        ОТМЕНА
+      </button>
+    </div>
+  </div>
+)}
       <nav className="bottom-nav">
         {tabs.map((tab) => (
           <button
