@@ -1,201 +1,48 @@
-const express = require("express");
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
-const db = require("./db");
-
-const router = express.Router();
+import jwt from "jsonwebtoken";
+import bcrypt from "bcryptjs";
 
 const JWT_SECRET =
-  process.env.JWT_SECRET ?? "mvp-local-secret-change-me";
+  process.env.JWT_SECRET || "change-this-secret";
 
-router.post("/register", async (req, res) => {
-  try {
-    const name = String(req.body?.name ?? "").trim();
+export function hashPassword(password) {
+  return bcrypt.hash(password, 10);
+}
 
-    const email = String(req.body?.email ?? "")
-      .trim()
-      .toLowerCase();
+export function verifyPassword(password, hash) {
+  return bcrypt.compare(password, hash);
+}
 
-    const password = String(req.body?.password ?? "");
-
-    const personalDataConsent =
-      req.body?.personalDataConsent === true;
-
-    const privacyConsent =
-      req.body?.privacyConsent === true;
-
-    const aiConsent =
-      req.body?.aiConsent === true;
-
-    if (!name) {
-      return res.status(400).json({
-        error: "Введите имя",
-      });
+export function createToken(user) {
+  return jwt.sign(
+    {
+      id: user.id,
+      email: user.email,
+    },
+    JWT_SECRET,
+    {
+      expiresIn: "30d",
     }
+  );
+}
 
-    if (!email) {
-      return res.status(400).json({
-        error: "Введите email",
-      });
-    }
+export function authMiddleware(req, res, next) {
+  const header = req.headers.authorization;
 
-    if (!password) {
-      return res.status(400).json({
-        error: "Введите пароль",
-      });
-    }
-
-    if (password.length < 8) {
-      return res.status(400).json({
-        error: "Пароль должен содержать минимум 8 символов",
-      });
-    }
-
-    if (!personalDataConsent) {
-      return res.status(400).json({
-        error: "Подтвердите согласие на обработку персональных данных",
-      });
-    }
-
-    if (!privacyConsent) {
-      return res.status(400).json({
-        error: "Подтвердите политику конфиденциальности",
-      });
-    }
-
-    if (!aiConsent) {
-      return res.status(400).json({
-        error: "Подтвердите использование AI",
-      });
-    }
-
-    const existingUser = db
-      .prepare("SELECT id FROM users WHERE email = ?")
-      .get(email);
-
-    if (existingUser) {
-      return res.status(409).json({
-        error: "Пользователь с таким email уже существует",
-      });
-    }
-
-    const passwordHash = await bcrypt.hash(password, 12);
-
-    const result = db
-      .prepare(`
-        INSERT INTO users (
-          name,
-          email,
-          password_hash,
-          personal_data_consent,
-          privacy_consent,
-          ai_consent
-        )
-        VALUES (?, ?, ?, ?, ?, ?)
-      `)
-      .run(
-        name,
-        email,
-        passwordHash,
-        1,
-        1,
-        1
-      );
-
-    const userId = Number(result.lastInsertRowid);
-
-    db.prepare(`
-      INSERT INTO user_data (user_id)
-      VALUES (?)
-    `).run(userId);
-
-    const token = jwt.sign(
-      {
-        userId,
-        email,
-      },
-      JWT_SECRET,
-      {
-        expiresIn: "30d",
-      }
-    );
-
-    return res.status(201).json({
-      token,
-      user: {
-        id: userId,
-        name,
-        email,
-      },
-    });
-  } catch (error) {
-    console.error("REGISTER ERROR:", error);
-
-    return res.status(500).json({
-      error: "Ошибка регистрации",
+  if (!header || !header.startsWith("Bearer ")) {
+    return res.status(401).json({
+      error: "Unauthorized",
     });
   }
-});
 
-router.post("/login", async (req, res) => {
   try {
-    const email = String(req.body?.email ?? "")
-      .trim()
-      .toLowerCase();
+    const token = header.slice(7);
 
-    const password = String(req.body?.password ?? "");
+    req.user = verifyToken(token);
 
-    const user = db
-      .prepare(`
-        SELECT id, name, email, password_hash
-        FROM users
-        WHERE email = ?
-      `)
-      .get(email);
-
-    if (!user) {
-      return res.status(401).json({
-        error: "Неверный email или пароль",
-      });
-    }
-
-    const passwordValid = await bcrypt.compare(
-      password,
-      user.password_hash
-    );
-
-    if (!passwordValid) {
-      return res.status(401).json({
-        error: "Неверный email или пароль",
-      });
-    }
-
-    const token = jwt.sign(
-      {
-        userId: user.id,
-        email: user.email,
-      },
-      JWT_SECRET,
-      {
-        expiresIn: "30d",
-      }
-    );
-
-    return res.json({
-      token,
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-      },
-    });
-  } catch (error) {
-    console.error("LOGIN ERROR:", error);
-
-    return res.status(500).json({
-      error: "Ошибка входа",
+    next();
+  } catch {
+    return res.status(401).json({
+      error: "Invalid token",
     });
   }
-});
-
-module.exports = router;
+}

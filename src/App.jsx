@@ -186,7 +186,7 @@ async function submitAuth(event) {
       authMode === "register"
         ? "/api/auth/register"
         : "/api/auth/login";
-
+console.log("TOKEN:", authToken);
     const response = await fetch(API_URL + endpoint, {
       method: "POST",
       headers: {
@@ -346,10 +346,11 @@ async function sendAgentMessage() {
   setAgentThinking(true);
 
   try {
-  const response = await fetch("/api/agent", {
+const response = await fetch("http://localhost:3001/chat", {
   method: "POST",
   headers: {
     "Content-Type": "application/json",
+    Authorization: "Bearer " + authToken,
   },
   body: JSON.stringify({
     message: text,
@@ -376,7 +377,7 @@ journalEntries: [
 
     const agentMessage = {
       role: "agent",
-      text: data.reply || "Я здесь. Продолжай.",
+   text: data.message || "Я здесь. Продолжай.",
     };
 
     const updatedMessages = [...nextMessages, agentMessage];
@@ -477,12 +478,7 @@ function deleteSavedChat(chatId) {
         if (goal.id !== goalId) {
           return goal;
         }
-<button
-  type="button"
-onClick={() => setShowGoalModal(true)}
->
-  + ДОБАВИТЬ ЦЕЛЬ
-</button>
+
         return {
           ...goal,
           progress: Math.min(goal.progress + 5, 100),
