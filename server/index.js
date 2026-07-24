@@ -34,7 +34,29 @@ app.get("/api/health", (req, res) => {
     model: MODEL,
   });
 });
+app.post("/api/auth/register", (req, res) => {
+  const { email } = req.body;
 
+  res.json({
+    token: "demo-token",
+    user: {
+      email,
+      name: "Demo User",
+    },
+  });
+});
+
+app.post("/api/auth/login", (req, res) => {
+  const { email } = req.body;
+
+  res.json({
+    token: "demo-token",
+    user: {
+      email,
+      name: "Demo User",
+    },
+  });
+});
 app.post("/api/chat", async (req, res) => {
   try {
     const { message } = req.body;
