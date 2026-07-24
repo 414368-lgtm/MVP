@@ -39,7 +39,7 @@ const homeAgentPhrases = [
   "Мы не меняем курс. Сегодня усиливаем то, что уже построено.",
   "Вернись к цели. Определи следующее действие и выполни его."
 ];
-const API_URL = "https://mvp-production-10ea.up.railway.app";
+const API_URL = window.location.origin;
 export default function App() {const [authToken, setAuthToken] = useState(() => {
   return localStorage.getItem("mvp-auth-token") ?? "";
 });
