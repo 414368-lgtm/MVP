@@ -17,7 +17,7 @@ const __dirname = path.dirname(__filename);
 
 const PORT = Number(process.env.PORT) || 3001;
 
-const MODEL = process.env.OLLAMA_MODEL || "qwen2.5-coder:7b";
+const MODEL = process.env.OLLAMA_MODEL || "llama3.1";
 
 const HOST = process.env.OLLAMA_URL || "https://ollama.com";
 
