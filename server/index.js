@@ -27,7 +27,17 @@ const client = new Ollama({
     Authorization: `Bearer ${process.env.OLLAMA_API_KEY}`,
   },
 });
-
+app.get("/api/models", async (req, res) => {
+  try {
+    const models = await client.list();
+    res.json(models);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      error: error.message,
+    });
+  }
+});
 app.get("/api/health", (req, res) => {
   res.json({
     status: "ok",
