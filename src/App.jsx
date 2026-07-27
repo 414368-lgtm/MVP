@@ -375,10 +375,10 @@ journalEntries: [
 
     const data = await response.json();
 
-    const agentMessage = {
-      role: "agent",
-   text: data.message || "Я здесь. Продолжай.",
-    };
+const agentMessage = {
+  role: "agent",
+  text: data.response || "Я здесь. Продолжай.",
+};
 
     const updatedMessages = [...nextMessages, agentMessage];
 

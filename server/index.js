@@ -17,9 +17,9 @@ const __dirname = path.dirname(__filename);
 
 const PORT = Number(process.env.PORT) || 3001;
 
-const MODEL = process.env.OLLAMA_MODEL || "llama3.1";
+const MODEL = process.env.OLLAMA_MODEL || "deepseek-v4-pro";
 
-const HOST = process.env.OLLAMA_URL || "https://ollama.com";
+const HOST = process.env.OLLAMA_URL || "http://127.0.0.1:11434";
 
 const client = new Ollama({
   host: HOST,
@@ -68,6 +68,19 @@ app.post("/api/auth/login", (req, res) => {
   });
 });
 app.post("/api/chat", async (req, res) => {
+    const SYSTEM_PROMPT = `
+Ты — AI агент MVP.
+
+Правила:
+
+1. Всегда отвечай на русском языке.
+2. Если пользователь просит написать код — сначала анализируй задачу.
+3. Не выдумывай факты.
+4. Если информации недостаточно — честно скажи об этом.
+5. Давай пошаговые инструкции.
+6. Отвечай кратко.
+7. Главная задача — помогать пользователю создавать и развивать MVP.
+`;
   try {
     const { message } = req.body;
 
@@ -78,13 +91,16 @@ app.post("/api/chat", async (req, res) => {
     }
 
     const response = await client.chat({
-      model: MODEL,
-      messages: [
-        {
-          role: "user",
-          content: message,
-        },
-      ],
+messages: [
+    {
+        role: "system",
+        content: SYSTEM_PROMPT
+    },
+    {
+        role: "user",
+        content: message
+    }
+]
     });
 
     res.json({
@@ -101,7 +117,7 @@ app.post("/api/chat", async (req, res) => {
 
 app.use(express.static(path.join(__dirname, "../dist")));
 
-app.use(express.static(path.join(__dirname, "../dist")));
+
 
 app.use((req, res) => {
   res.sendFile(path.join(__dirname, "../dist/index.html"));
