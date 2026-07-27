@@ -17,13 +17,11 @@ const __dirname = path.dirname(__filename);
 
 const PORT = Number(process.env.PORT) || 3001;
 
-const MODEL = (process.env.OLLAMA_MODEL?.trim()) || "deepseek-v4-pro";
+const MODEL = "deepseek-v4-pro";
+const HOST = "https://ollama.com";
 
-console.log("MODEL =", JSON.stringify(MODEL));
 console.log("MODEL =", MODEL);
 console.log("HOST =", HOST);
-console.log("BODY =", JSON.stringify(req.body));
-const HOST = process.env.OLLAMA_URL || "http://127.0.0.1:11434";
 
 const client = new Ollama({
   host: HOST,
