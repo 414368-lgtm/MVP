@@ -89,19 +89,21 @@ app.post("/api/chat", async (req, res) => {
         error: "Message is required",
       });
     }
-
-    const response = await client.chat({
-messages: [
+console.log("MODEL =", MODEL);
+console.log("HOST =", HOST);
+const response = await client.chat({
+  model: MODEL,
+  messages: [
     {
-        role: "system",
-        content: SYSTEM_PROMPT
+      role: "system",
+      content: SYSTEM_PROMPT,
     },
     {
-        role: "user",
-        content: message
-    }
-]
-    });
+      role: "user",
+      content: message,
+    },
+  ],
+});
 
     res.json({
       response: response.message.content,
