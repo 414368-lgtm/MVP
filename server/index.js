@@ -11,13 +11,17 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
+const PORT = Number(process.env.PORT) || 3001;
 const MODEL = "openrouter/auto";
 
 const client = new OpenAI({
   apiKey: process.env.OPENROUTER_API_KEY,
   baseURL: "https://openrouter.ai/api/v1",
 });
+console.log("OPENROUTER_API_KEY:", !!process.env.OPENROUTER_API_KEY);
 app.get("/api/models", (req, res) => {
   res.json({
     provider: "OpenRouter",
