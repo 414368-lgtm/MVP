@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import { Ollama } from "ollama";
+import OpenAI from "openai";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -12,33 +12,18 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const MODEL = "openrouter/auto";
 
-const PORT = Number(process.env.PORT) || 3001;
-
-const MODEL = "deepseek-v4-pro";
-const HOST = "https://ollama.com";
-
-console.log("MODEL =", MODEL);
-console.log("HOST =", HOST);
-
-const client = new Ollama({
-  host: HOST,
-  headers: {
-    Authorization: `Bearer ${process.env.OLLAMA_API_KEY}`,
-  },
+const client = new OpenAI({
+  apiKey: process.env.OPENROUTER_API_KEY,
+  baseURL: "https://openrouter.ai/api/v1",
 });
-app.get("/api/models", async (req, res) => {
-  try {
-    const models = await client.list();
-    res.json(models);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({
-      error: error.message,
-    });
-  }
+app.get("/api/models", (req, res) => {
+  res.json({
+    provider: "OpenRouter",
+    model: MODEL,
+    status: "ok",
+  });
 });
 app.get("/api/health", (req, res) => {
   res.json({
@@ -93,7 +78,12 @@ app.post("/api/chat", async (req, res) => {
     }
 console.log("MODEL =", MODEL);
 console.log("HOST =", HOST);
-const response = await client.chat({
+console.log({
+  MODEL,
+  HOST,
+  apiKeyExists: !!process.env.OLLAMA_API_KEY,
+});
+const response = await client.chat.completions.create({
   model: MODEL,
   messages: [
     {
@@ -107,16 +97,20 @@ const response = await client.chat({
   ],
 });
 
-    res.json({
-      response: response.message.content,
-    });
-  } catch (error) {
-    console.error(error);
+res.json({
+  response: response.choices[0].message.content,
+});
+} catch (error) {
+  console.error("CHAT ERROR:", error);
 
-    res.status(500).json({
-      error: error.message,
-    });
+  if (error.response) {
+    console.error("RESPONSE:", error.response);
   }
+
+  res.status(500).json({
+    error: error.message,
+  });
+}
 });
 
 app.use(express.static(path.join(__dirname, "../dist")));
